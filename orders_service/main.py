@@ -1,4 +1,8 @@
 from fastapi import FastAPI
+import models
+from database import engine
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Orders Service", version="1.0.0")
 
