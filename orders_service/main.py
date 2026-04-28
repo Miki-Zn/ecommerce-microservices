@@ -4,15 +4,20 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import engine, get_db
-from rabbitmq import publish_order_created_event 
+from rabbitmq import publish_order_created_event
+from security import get_current_user
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Orders Service", version="1.0.0")
 
 @app.post("/orders/", response_model=schemas.OrderResponse, status_code=201)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    new_order = models.Order(**order.model_dump())
+def create_order(
+    order: schemas.OrderCreate, 
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user)
+):
+    new_order = models.Order(**order.model_dump(), user_id=current_user_id)
     db.add(new_order)
     db.commit()
     db.refresh(new_order)
