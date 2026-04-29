@@ -4,6 +4,7 @@ import os
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
+import redis
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 
@@ -22,6 +23,8 @@ def process_order_message(ch, method, properties, body):
             if product.quantity_in_stock >= quantity_to_deduct:
                 product.quantity_in_stock -= quantity_to_deduct
                 db.commit()
+                redis_client = redis.Redis(host='redis', port=6379, db=0, decode_responses=True)
+                redis_client.delete("products_list")
                 print(f" [V] Deducted {quantity_to_deduct} items. New stock for product {product_id}: {product.quantity_in_stock}")
             else:
                 print(f" [!] Not enough stock for product {product_id}")
@@ -36,7 +39,6 @@ def process_order_message(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
 def start_consuming():
-    """Настраивает подключение и начинает бесконечно слушать очередь"""
     connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URL))
     channel = connection.channel()
     channel.queue_declare(queue='order_created', durable=True)

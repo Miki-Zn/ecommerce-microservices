@@ -71,6 +71,10 @@ services:
     volumes:
       - ./orders_service:/app
 
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
   inventory_api:
     build: ./inventory_service
     ports:
@@ -78,6 +82,7 @@ services:
     depends_on:
       - inventory_db
       - rabbitmq
+      - redis
     volumes:
       - ./inventory_service:/app
 
